@@ -5,6 +5,17 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 
+void render_grid(SDL_Renderer* renderer)
+{
+
+	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0);
+	for(unsigned int i=1;i<20;i++)
+	{
+		SDL_RenderDrawLine(renderer, i*50, 0, i*50, 1000);
+		SDL_RenderDrawLine(renderer, 0, i*50, 1000, i*50);
+	}
+}
+
 int main(int argc, char **argv)
 {
 
@@ -163,7 +174,7 @@ int main(int argc, char **argv)
 	unsigned int running = 1;
 	while(running)
 	{
-
+		SDL_Delay(50);
 		while(SDL_PollEvent(&event))
 		{
 			switch(event.type)
@@ -186,7 +197,8 @@ int main(int argc, char **argv)
 
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
-
+		
+		render_grid(renderer);
 		
 		SDL_RenderPresent(renderer);
 
