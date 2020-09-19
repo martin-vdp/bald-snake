@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_mixer.h>
 
 void render_grid(SDL_Renderer* renderer)
 {
@@ -19,9 +20,9 @@ void render_grid(SDL_Renderer* renderer)
 int main(int argc, char **argv)
 {
 
-	if(SDL_Init(SDL_INIT_VIDEO) != 0)
+	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0)
 	{
-		fprintf(stderr, "Couldn't init video: %s", SDL_GetError());
+		fprintf(stderr, "Couldn't init video or / and audio: %s", SDL_GetError());
 		return -1;
 	}
 
@@ -137,7 +138,7 @@ int main(int argc, char **argv)
 					case SDLK_RETURN: case SDLK_KP_ENTER:
 						// if it's the play button clear the menu resources if not just exit :)
 						if(placeInMenu == 0) {isInMenu = 0; SDL_FreeSurface(surface_playtext); SDL_FreeSurface(surface_quittext); SDL_FreeSurface(surface_banner); SDL_FreeSurface(surface_credittext);
-						SDL_DestroyTexture(texture_credittext);SDL_DestroyTexture(texture_banner); SDL_DestroyTexture(texture_playtext); SDL_DestroyTexture(texture_quittext); printf("DICK\n");  break;}
+						SDL_DestroyTexture(texture_credittext);SDL_DestroyTexture(texture_banner); SDL_DestroyTexture(texture_playtext); SDL_DestroyTexture(texture_quittext); break;}
 						else exit(0);
 
 
@@ -170,7 +171,17 @@ int main(int argc, char **argv)
 	}
 	
 
-	
+	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
+	Mix_Music* ingame_music = Mix_LoadMUS("assets/music/temporary_music.wav");
+	if(!ingame_music)
+	{
+		fprintf(stderr, "couldn't open music: %s\n", Mix_GetError());
+		return -1;
+	}
+
+	Mix_PlayMusic(ingame_music, -1);
+
 	unsigned int running = 1;
 	while(running)
 	{
@@ -206,6 +217,8 @@ int main(int argc, char **argv)
 
 	TTF_Quit();
 	IMG_Quit();
+	Mix_FreeMusic(ingame_music);
+	Mix_CloseAudio();
 
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
