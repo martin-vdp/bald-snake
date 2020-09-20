@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 
 	SDL_Color white = {255, 255, 255};
 	SDL_Color red   = {255, 0, 0};
-	SDL_Color purple = {128, 0, 128};
+	SDL_Color green  = {0, 255, 0};
 
 	TTF_Font* font = TTF_OpenFont("assets/fonts/Roboto-Black.ttf", 1000);
 
@@ -149,8 +149,8 @@ int main(int argc, char **argv)
 	}
 	SDL_Texture* texture_banner = SDL_CreateTextureFromSurface(renderer, surface_banner);
 
-	SDL_Surface* surface_credittext = TTF_RenderText_Solid(font, "Music credit: \"I don't want credit\"", purple);
-	SDL_Texture* texture_credittext = SDL_CreateTextureFromSurface(renderer, surface_credittext);
+	SDL_Surface* surface_footertext = TTF_RenderText_Solid(font, "don't judge pls", green);
+	SDL_Texture* texture_footertext = SDL_CreateTextureFromSurface(renderer, surface_footertext);
 
 	SDL_Rect play_rect;
 	play_rect.x = 400; 	
@@ -166,15 +166,15 @@ int main(int argc, char **argv)
 
 	SDL_Rect banner_image_rect;
 	banner_image_rect.x = 250;
-	banner_image_rect.y = 0;
+	banner_image_rect.y = 20;
 	banner_image_rect.w = 500;
 	banner_image_rect.h = 300;
 
-	SDL_Rect credittext_rect;
-	credittext_rect.x = 100;
-	credittext_rect.y = 625;
-	credittext_rect.w = 800;
-	credittext_rect.h = 400;
+	SDL_Rect footertext_rect;
+	footertext_rect.x = 120;
+	footertext_rect.y = 625;
+	footertext_rect.w = 750;
+	footertext_rect.h = 380;
 
 	// rendering menu
 	while(isInMenu)
@@ -213,8 +213,8 @@ int main(int argc, char **argv)
 
 					case SDLK_RETURN: case SDLK_KP_ENTER:
 						// if it's the play button clear the menu resources if not just exit :)
-						if(placeInMenu == 0) {isInMenu = 0; SDL_FreeSurface(surface_playtext); SDL_FreeSurface(surface_quittext); SDL_FreeSurface(surface_banner); SDL_FreeSurface(surface_credittext);
-						SDL_DestroyTexture(texture_credittext);SDL_DestroyTexture(texture_banner); SDL_DestroyTexture(texture_playtext); SDL_DestroyTexture(texture_quittext); break;}
+						if(placeInMenu == 0) {isInMenu = 0; SDL_FreeSurface(surface_playtext); SDL_FreeSurface(surface_quittext); SDL_FreeSurface(surface_banner); SDL_FreeSurface(surface_footertext);
+						SDL_DestroyTexture(texture_footertext);SDL_DestroyTexture(texture_banner); SDL_DestroyTexture(texture_playtext); SDL_DestroyTexture(texture_quittext); break;}
 						else exit(0);
 
 
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 		SDL_RenderCopy(renderer, texture_banner, NULL, &banner_image_rect);
 		SDL_RenderCopy(renderer, texture_playtext, NULL, &play_rect);
 		SDL_RenderCopy(renderer, texture_quittext, NULL, &quit_rect);
-		SDL_RenderCopy(renderer, texture_credittext, NULL, &credittext_rect);
+		SDL_RenderCopy(renderer, texture_footertext, NULL, &footertext_rect);
 
 		SDL_RenderPresent(renderer);
 	
