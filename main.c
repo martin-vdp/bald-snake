@@ -7,19 +7,79 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_mixer.h>
 
+enum direction
+{
+	UP    = 1,
+	DOWN  = 2,
+	LEFT  = 3,
+	RIGHT = 4,
+};
+
+struct Snake
+{
+	unsigned int x, y;
+	unsigned int next_direction;
+};
+
+struct Snake snake_init(void)
+{
+	struct Snake ret;
+	ret.x = 1;
+	ret.y = 0;
+	ret.next_direction = RIGHT;
+	return ret;	
+}
+
 struct Food
 {
 	unsigned int x,y;
 };
 
-struct Food random_food(void)
+void random_food(struct Food* food)
 {
 	srand(time(NULL));
 
-	struct Food ret;
-	ret.x = (rand() % 20);
-	ret.y = (rand() % 20);
-	return ret;
+	food->x = (rand() % 20);
+	food->y = (rand() % 20);
+}
+
+void snake_render(SDL_Renderer* renderer, struct Snake snake)
+{
+	SDL_SetRenderDrawColor(renderer, 51, 255, 51, 0);
+
+	SDL_Rect snake_rect;
+	snake_rect.x = (snake.x * 50);
+	snake_rect.y = (snake.y * 50);
+	snake_rect.w = 50;
+	snake_rect.h = 50;
+
+	SDL_RenderFillRect(renderer, &snake_rect);
+}
+
+void game_update(struct Snake* snake,struct Food* food, SDL_Rect* food_rect)
+{
+	switch(snake->next_direction)
+	{
+		case UP:
+			snake->y--;
+			break;
+		case DOWN:
+			snake->y++;
+			break;
+		case LEFT:
+			snake->x--;
+			break;
+		case RIGHT:
+			snake->x++;
+	
+	}
+
+	if((snake->x == food->x) && (snake->y == food->y))
+	{
+		random_food(food);
+		food_rect->x = food->x * 50;
+		food_rect->y = food->y * 50;
+	}	
 }
 
 void render_grid(SDL_Renderer* renderer)
@@ -176,7 +236,6 @@ int main(int argc, char **argv)
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
 
-
 		SDL_RenderCopy(renderer, texture_banner, NULL, &banner_image_rect);
 		SDL_RenderCopy(renderer, texture_playtext, NULL, &play_rect);
 		SDL_RenderCopy(renderer, texture_quittext, NULL, &quit_rect);
@@ -198,9 +257,6 @@ int main(int argc, char **argv)
 
 	Mix_PlayMusic(ingame_music, -1);
 
-
-	
-
 	SDL_Surface* food_img_surface = IMG_Load("assets/img/food1.png");
 	if(!food_img_surface)
 	{
@@ -209,7 +265,8 @@ int main(int argc, char **argv)
 	}
 	SDL_Texture* food_img_texture = SDL_CreateTextureFromSurface(renderer, food_img_surface);
 
-	struct Food food = random_food();
+	struct Food food;
+	random_food(&food);
 
 	SDL_Rect food_rect;
 	food_rect.x = (food.x * 50);
@@ -217,10 +274,12 @@ int main(int argc, char **argv)
 	food_rect.w = 50;
 	food_rect.h = 50;
 
+	struct Snake snake = snake_init();
+
 	unsigned int running = 1;
 	while(running)
 	{
-		SDL_Delay(50);
+		SDL_Delay(100);
 		while(SDL_PollEvent(&event))
 		{
 			switch(event.type)
@@ -228,6 +287,26 @@ int main(int argc, char **argv)
 				case SDL_KEYDOWN:
 					switch(event.key.keysym.sym)
 					{
+						case SDLK_UP:
+							if(snake.next_direction != DOWN)
+								snake.next_direction = UP;
+							break;
+
+						case SDLK_DOWN:
+							if(snake.next_direction != UP)
+								snake.next_direction = DOWN;
+							break;
+
+						case SDLK_LEFT:
+							if(snake.next_direction != RIGHT)
+								snake.next_direction = LEFT;
+							break;
+
+						case SDLK_RIGHT:
+							if(snake.next_direction != LEFT)
+								snake.next_direction = RIGHT;
+							break;
+
 						case SDLK_ESCAPE:
 							running = 0;
 							break;
@@ -241,12 +320,16 @@ int main(int argc, char **argv)
 			}
 		}
 
+		game_update(&snake, &food, &food_rect);
+
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 		SDL_RenderClear(renderer);
 		
 		render_grid(renderer);
+		
 		SDL_RenderCopy(renderer, food_img_texture, NULL, &food_rect);
 
+		snake_render(renderer, snake);
 
 		SDL_RenderPresent(renderer);
 
