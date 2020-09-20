@@ -1,10 +1,26 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_mixer.h>
+
+struct Food
+{
+	unsigned int x,y;
+};
+
+struct Food random_food(void)
+{
+	srand(time(NULL));
+
+	struct Food ret;
+	ret.x = (rand() % 20);
+	ret.y = (rand() % 20);
+	return ret;
+}
 
 void render_grid(SDL_Renderer* renderer)
 {
@@ -182,6 +198,25 @@ int main(int argc, char **argv)
 
 	Mix_PlayMusic(ingame_music, -1);
 
+
+	
+
+	SDL_Surface* food_img_surface = IMG_Load("assets/img/food1.png");
+	if(!food_img_surface)
+	{
+		fprintf(stderr, "Couldn't load food pic: %s", IMG_GetError());
+		return -1;
+	}
+	SDL_Texture* food_img_texture = SDL_CreateTextureFromSurface(renderer, food_img_surface);
+
+	struct Food food = random_food();
+
+	SDL_Rect food_rect;
+	food_rect.x = (food.x * 50);
+	food_rect.y = (food.y * 50);
+	food_rect.w = 50;
+	food_rect.h = 50;
+
 	unsigned int running = 1;
 	while(running)
 	{
@@ -210,7 +245,9 @@ int main(int argc, char **argv)
 		SDL_RenderClear(renderer);
 		
 		render_grid(renderer);
-		
+		SDL_RenderCopy(renderer, food_img_texture, NULL, &food_rect);
+
+
 		SDL_RenderPresent(renderer);
 
 	}
