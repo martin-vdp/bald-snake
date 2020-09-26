@@ -7,6 +7,18 @@
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_mixer.h>
 
+//
+// TODO:
+// 	- Changing the struct Tail and the struct Food with a typedef so we can save 8 bytes
+// 	  (it needs to be able to run in a freaking toaster).
+//
+
+
+struct Tail
+{
+	unsigned int x, y;
+};
+
 enum direction
 {
 	UP    = 1,
@@ -19,15 +31,17 @@ struct Snake
 {
 	unsigned int x, y;
 	unsigned int next_direction;
+	unsigned int total;
+	struct Tail* tail;
 };
 
-struct Snake snake_init(void)
+void snake_init(struct Snake* snake)
 {
-	struct Snake ret;
-	ret.x = 1;
-	ret.y = 0;
-	ret.next_direction = RIGHT;
-	return ret;	
+	snake->x = 10;
+	snake->y = 10;
+	snake->next_direction = RIGHT;
+	snake->total = 0;
+	snake->tail = malloc(sizeof(struct Tail)*0); // making it null at the beginning maybe ?
 }
 
 struct Food
@@ -35,15 +49,32 @@ struct Food
 	unsigned int x,y;
 };
 
-void random_food(struct Food* food)
+unsigned int food_is_in_snake(struct Food food, struct Snake snake)
+{
+	for(unsigned int i=0;i<snake.total;i++)
+	{
+		if(snake.tail[i].x == food.x && snake.tail[i].y == food.y)
+			return 1;
+	}
+	return 0;
+}
+
+void random_food(struct Food* food, struct Snake snake)
 {
 	srand(time(NULL));
 
+	struct Food last_food = *food;	
+
+	
+	
+	do
+	{
 	food->x = (rand() % 20);
 	food->y = (rand() % 20);
+	}while((food->x == last_food.x && food->y == last_food.y) || food_is_in_snake(*food, snake) );
 }
 
-void snake_render(SDL_Renderer* renderer, struct Snake snake)
+void snake_render(SDL_Renderer* renderer, struct Snake snake, SDL_Texture* head_texture)
 {
 	SDL_SetRenderDrawColor(renderer, 51, 255, 51, 0);
 
@@ -54,10 +85,22 @@ void snake_render(SDL_Renderer* renderer, struct Snake snake)
 	snake_rect.h = 50;
 
 	SDL_RenderFillRect(renderer, &snake_rect);
+
+	SDL_RenderCopy(renderer, head_texture, NULL, &snake_rect);
+
+
+	for(unsigned int i=0;i<snake.total;i++)
+	{
+		snake_rect.x = (snake.tail[i].x * 50);
+		snake_rect.y = (snake.tail[i].y * 50);
+		SDL_RenderFillRect(renderer, &snake_rect);
+	}
 }
 
-void game_update(struct Snake* snake,struct Food* food, SDL_Rect* food_rect)
+void game_update(struct Snake* snake, struct Food* food, SDL_Rect* food_rect)
 {
+	struct Snake snake_last_position = *snake;
+
 	switch(snake->next_direction)
 	{
 		case UP:
@@ -71,15 +114,59 @@ void game_update(struct Snake* snake,struct Food* food, SDL_Rect* food_rect)
 			break;
 		case RIGHT:
 			snake->x++;
-	
+			break;	
+	}
+
+	if(19 < snake->x || 19 < snake->y || snake->x < 0 || snake->y < 0)
+	{
+		free(snake->tail);
+		snake_init(snake);
+	}
+
+	for(unsigned int i=0; i<snake->total;i++)
+	{
+		if(snake->x == snake->tail[i].x && snake->y == snake->tail[i].y)
+		{
+			free(snake->tail);
+			snake_init(snake);
+		}
 	}
 
 	if((snake->x == food->x) && (snake->y == food->y))
 	{
-		random_food(food);
+		random_food(food, *snake);
 		food_rect->x = food->x * 50;
 		food_rect->y = food->y * 50;
-	}	
+
+		snake->total++;
+
+		struct Tail new_tail = {snake->x, snake->y};
+		snake->tail = realloc(snake->tail, sizeof(struct Tail) * snake->total);
+		snake->tail[snake->total-1] = new_tail;
+	}
+	
+
+
+	for (int i = 0; i < snake->total; i++)
+	{
+		if (i > 0)
+		{
+			snake->tail[i-1].x = snake->tail[i].x;
+			snake->tail[i-1].y = snake->tail[i].y;
+		}
+
+	}
+
+	if (snake->total > 0)
+	{
+		snake->tail[snake->total-1].x = snake_last_position.x;			
+		snake->tail[snake->total-1].y = snake_last_position.y;
+	}
+
+
+//	for()
+
+
 }
 
 void render_grid(SDL_Renderer* renderer)
@@ -257,16 +344,27 @@ int main(int argc, char **argv)
 
 	Mix_PlayMusic(ingame_music, -1);
 
-	SDL_Surface* food_img_surface = IMG_Load("assets/img/food1.png");
-	if(!food_img_surface)
+	SDL_Surface* head_img_surface = IMG_Load("assets/img/head.png");
+	if(!head_img_surface)
 	{
-		fprintf(stderr, "Couldn't load food pic: %s", IMG_GetError());
+		fprintf(stderr, "Couldn't load head pic: %s\n", IMG_GetError());
 		return -1;
 	}
-	SDL_Texture* food_img_texture = SDL_CreateTextureFromSurface(renderer, food_img_surface);
+	SDL_Texture* head_img_texture = SDL_CreateTextureFromSurface(renderer, head_img_surface);
 
+
+	SDL_Surface* food_img_surface = IMG_Load("assets/img/food.png");
+	if(!food_img_surface)
+	{
+		fprintf(stderr, "Couldn't load food pic: %s\n", IMG_GetError());
+	}
+	SDL_Texture* food_img_texture = SDL_CreateTextureFromSurface(renderer, food_img_surface);
+ 	
+	struct Snake snake;
+	snake_init(&snake);
+	
 	struct Food food;
-	random_food(&food);
+	random_food(&food, snake);
 
 	SDL_Rect food_rect;
 	food_rect.x = (food.x * 50);
@@ -274,7 +372,6 @@ int main(int argc, char **argv)
 	food_rect.w = 50;
 	food_rect.h = 50;
 
-	struct Snake snake = snake_init();
 
 	unsigned int running = 1;
 	while(running)
@@ -308,12 +405,14 @@ int main(int argc, char **argv)
 							break;
 
 						case SDLK_ESCAPE:
+							free(snake.tail);
 							running = 0;
 							break;
 					
 					}
 					break;
 				case SDL_QUIT:
+					free(snake.tail);
 					running = 0;
 					break;
 			
@@ -326,10 +425,12 @@ int main(int argc, char **argv)
 		SDL_RenderClear(renderer);
 		
 		render_grid(renderer);
-		
+	
+
+		snake_render(renderer, snake, head_img_texture);
+
 		SDL_RenderCopy(renderer, food_img_texture, NULL, &food_rect);
 
-		snake_render(renderer, snake);
 
 		SDL_RenderPresent(renderer);
 
